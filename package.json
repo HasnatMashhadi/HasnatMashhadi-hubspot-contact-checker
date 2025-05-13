@@ -1,6 +1,8 @@
 {
   "name": "hasnatmashhadi-hubspot-contact-checker",
   "version": "1.0.0",
+  "main": "api/check.js",
+  "license": "ISC",
   "description": "API to check if a HubSpot contact exists by email",
   "scripts": {
     "dev": "vercel dev",
