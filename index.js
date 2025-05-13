@@ -49,14 +49,17 @@ app.post("/check", async (req, res) => {
 
 // ✅ New route to mark user as purchased
 app.post("/purchase", express.json(), async (req, res) => {
+  console.log("📦 Shopify Webhook Hit /purchase:", JSON.stringify(req.body, null, 2));
+
   try {
     const email = req.body?.email || req.body?.customer?.email;
 
     if (!email) {
+      console.warn("⚠️ Missing email in webhook payload.");
       return res.status(400).json({ error: "Missing email" });
     }
 
-    await axios.post(
+    const hubspotRes = await axios.post(
       `https://api.hubapi.com/contacts/v1/contact/createOrUpdate/email/${email}/`,
       {
         properties: [
@@ -74,12 +77,14 @@ app.post("/purchase", express.json(), async (req, res) => {
       }
     );
 
+    console.log("✅ HubSpot updated for:", email);
     res.status(200).send("✅ Purchase synced to HubSpot.");
   } catch (error) {
     console.error("🔥 /purchase error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to sync purchase status" });
   }
 });
+
 
 
 const PORT = process.env.PORT || 3000;
