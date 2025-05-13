@@ -47,6 +47,41 @@ app.post("/check", async (req, res) => {
   }
 });
 
+// ✅ New route to mark user as purchased
+app.post("/purchase", express.json(), async (req, res) => {
+  try {
+    const email = req.body?.email || req.body?.customer?.email;
+
+    if (!email) {
+      return res.status(400).json({ error: "Missing email" });
+    }
+
+    await axios.post(
+      `https://api.hubapi.com/contacts/v1/contact/createOrUpdate/email/${email}/`,
+      {
+        properties: [
+          {
+            property: "purchase_status",
+            value: "purchased"
+          }
+        ]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HUBSPOT_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.status(200).send("✅ Purchase synced to HubSpot.");
+  } catch (error) {
+    console.error("🔥 /purchase error:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to sync purchase status" });
+  }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
