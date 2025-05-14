@@ -57,7 +57,7 @@ app.post("/check", async (req, res) => {
           properties: [
             { property: "firstname", value: firstName || "" },
             { property: "lastname", value: lastName || "" },
-            { property: "mobilephone", value: phone || "" },
+            { property: "phone", value: phone || "" },
             { property: "landing_page_url", value: pageUrl || "" },
             { property: "purchase_status", value: "prospect" }
           ]
