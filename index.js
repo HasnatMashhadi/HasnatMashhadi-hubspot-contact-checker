@@ -26,7 +26,8 @@ app.get("/", (req, res) => {
 
 // ✅ POST to check contact
 app.post("/check", async (req, res) => {
-  const { email } = req.body;
+  const { email, firstName, lastName, phone, pageUrl } = req.body;
+
   if (!email) return res.status(400).json({ error: "Email is required." });
 
   try {
@@ -36,7 +37,7 @@ app.post("/check", async (req, res) => {
         filterGroups: [{
           filters: [{ propertyName: "email", operator: "EQ", value: email }]
         }],
-        properties: ["email"]
+        properties: ["email", "purchase_status"]
       },
       {
         headers: {
@@ -47,13 +48,78 @@ app.post("/check", async (req, res) => {
     );
 
     const exists = result.data.total > 0;
-    res.json({ exists });
 
+    // 👉 If not exists, create contact
+    if (!exists) {
+      await axios.post(
+        `https://api.hubapi.com/contacts/v1/contact/createOrUpdate/email/${email}/`,
+        {
+          properties: [
+            { property: "firstname", value: firstName || "" },
+            { property: "lastname", value: lastName || "" },
+            { property: "mobilephone", value: phone || "" },
+            { property: "landing_page_url", value: pageUrl || "" },
+            { property: "purchase_status", value: "prospect" }
+          ]
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.HUBSPOT_API_KEY}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      // 🕒 Fallback after 1 hour if not purchased
+      setTimeout(async () => {
+        try {
+          const recheck = await axios.post(
+            "https://api.hubapi.com/crm/v3/objects/contacts/search",
+            {
+              filterGroups: [{
+                filters: [{ propertyName: "email", operator: "EQ", value: email }]
+              }],
+              properties: ["purchase_status"]
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.HUBSPOT_API_KEY}`,
+                "Content-Type": "application/json"
+              }
+            }
+          );
+
+          const currentStatus = recheck.data.results?.[0]?.properties?.purchase_status;
+          if (currentStatus !== "purchased") {
+            await axios.post(
+              `https://api.hubapi.com/contacts/v1/contact/createOrUpdate/email/${email}/`,
+              {
+                properties: [
+                  { property: "purchase_status", value: "not_purchased" }
+                ]
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.HUBSPOT_API_KEY}`,
+                  "Content-Type": "application/json"
+                }
+              }
+            );
+            console.log(`⏳ Auto-set to not_purchased for ${email}`);
+          }
+        } catch (err) {
+          console.error("❌ Error updating to not_purchased:", err.response?.data || err.message);
+        }
+      }, 5 * 60 * 1000); // 5 mins
+    }
+
+    res.json({ exists });
   } catch (err) {
     console.error("❌ HubSpot Error:", err.response?.data || err.message);
     res.status(500).json({ error: "Something went wrong" });
   }
 });
+
 
 // ✅ New route to mark user as purchased
 app.post("/purchase", express.json(), async (req, res) => {
