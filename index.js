@@ -4,7 +4,15 @@ const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
+app.use(cors({ origin: "https://snatchandglow.co.uk" }));
 app.use(express.json());
+
+
+// ✅ UptimeRobot Ping Route
+app.get("/check", (req, res) => {
+  console.log("🔍 /check pinged for health monitoring");
+  res.status(200).send("✅ API is up and responding.");
+});
 
 // ✅ Allow CORS only from your live website
 app.use(cors({
@@ -85,7 +93,11 @@ app.post("/purchase", express.json(), async (req, res) => {
   }
 });
 
-
+// ✅ Final: Listen on correct port
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
