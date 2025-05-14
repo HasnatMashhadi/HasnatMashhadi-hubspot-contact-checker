@@ -110,7 +110,7 @@ app.post("/check", async (req, res) => {
         } catch (err) {
           console.error("❌ Error updating to not_purchased:", err.response?.data || err.message);
         }
-      }, 5 * 60 * 1000); // 5 mins
+      }, 60 * 60 * 1000); // 5 mins
     }
 
     res.json({ exists });
